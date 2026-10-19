@@ -42,12 +42,12 @@ services:
     volumes:
       - ./ros_workspace:/home/laboratorio/ros_workspace
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - ${XAUTHORITY:-0}:/root/.Xauthority
+      - ${XAUTHORITY:-/dev/null}:/root/.Xauthority
       - /dev:/dev
     tmpfs:
       - /dev/shm:rw
     environment:
-      - DISPLAY=${DISPLAY:-0}
+      - DISPLAY=${DISPLAY:-:0}
       - LD_LIBRARY_PATH=/usr/local/nvidia/lib64
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
@@ -71,9 +71,9 @@ services:
     volumes:
       - ./ros_workspace:/home/laboratorio/ros_workspace
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - ${XAUTHORITY:-0}:/root/.Xauthority
+      - ${XAUTHORITY:-/dev/null}:/root/.Xauthority
       - /dev:/dev
     tmpfs:
       - /dev/shm:rw
     environment:
-      - DISPLAY=${DISPLAY:-0}
+      - DISPLAY=${DISPLAY:-:0}
