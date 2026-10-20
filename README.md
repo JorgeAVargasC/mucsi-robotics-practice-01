@@ -4,7 +4,7 @@ Este repositorio proporciona un entorno de trabajo basado en ROS 2 Jazzy (Robot 
 
 ## Equipo que hace el fork
 
-Jorge V
+Jorge Vargas
 Jorge Martinez
 
 ## Herramientas Utilizadas
