@@ -2,6 +2,11 @@
 
 Este repositorio proporciona un entorno de trabajo basado en ROS 2 Jazzy (Robot Operating System) para la asignatura de Robótica y Automatización Inteligente del Máster de Computación y Sistemas Inteligentes en la Universidad de Deusto. El entorno está empaquetado en contenedores Docker para asegurar la portabilidad y facilidad de uso.
 
+## Equipo que hace el fork
+
+Jorge V
+Jorge Martinez
+
 ## Herramientas Utilizadas
 
 Antes de comenzar, asegúrate de tener instaladas las siguientes herramientas:
@@ -158,7 +163,8 @@ Para comprobar que el sistema funciona correctamente, ejecutar en la terminal do
 ros2 launch launcher_robots_lab_robotica sim_203.launch.py
 ```
 Esto debería ejecutar todos los nodos necesarios para poder controlar uno de los Universal Robots en simulación. Debería aparecer una interfaz gráfica en la que se muestra el robot y si se selecciona el grupo de planificación `robot`, debería permitir moverlo a diferentes posiciones, planificar y ejecutar trayectorias.
-
+
+
 ### Dos robots a la vez
 
 Para trabajar con dos robots en la misma escena (un único `move_group`, un único RViz) se usan los xacros combinados:
