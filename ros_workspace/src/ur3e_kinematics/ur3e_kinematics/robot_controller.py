@@ -82,7 +82,8 @@ class RobotController(Node):
         # for MoveIt. Do not call rclpy.spin() on this node.
         self._callback_executor = MultiThreadedExecutor()
         self._callback_executor.add_node(self)
-        threading.Thread(target=self._callback_executor.spin, daemon=True).start()
+        self._spin_thread = threading.Thread(target=self._callback_executor.spin, daemon=True)
+        self._spin_thread.start()
 
         self._wait_for_moveit()
         self._add_floor()
@@ -117,8 +118,10 @@ class RobotController(Node):
         return pose
 
     def shutdown(self) -> None:
-        """Stop the background executor and destroy the node."""
+        """Stop the background thread and destroy the node."""
         self._callback_executor.shutdown()
+        # Wait for the thread to finish so it never uses the destroyed node
+        self._spin_thread.join()
         self.destroy_node()
 
     def _on_joint_states(self, msg: JointState) -> None:
