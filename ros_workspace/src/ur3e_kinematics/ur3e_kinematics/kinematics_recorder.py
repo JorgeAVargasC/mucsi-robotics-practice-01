@@ -1,11 +1,15 @@
 """ROS 2 node that records the UR3e joint states."""
 
+from datetime import datetime
+from pathlib import Path
+
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 
 from ur3e_kinematics.constants import ARM_JOINTS, JOINT_STATES_TOPIC, QUEUE_DEPTH
 from ur3e_kinematics.joint_state_processor import JointStateProcessor
+from ur3e_kinematics.kinematics_csv_writer import KinematicsCsvWriter
 
 # * One log per second
 LOG_THROTTLE_S = 1.0
@@ -18,6 +22,19 @@ class KinematicsRecorder(Node):
         """Initialize the node and its joint-state subscription."""
         super().__init__('kinematics_recorder')
         self._processor = JointStateProcessor(joint_names=ARM_JOINTS)
+        self.declare_parameter(
+            'output_directory', str(Path.home() / 'ros_workspace')
+        )
+        output_directory = Path(
+            self.get_parameter('output_directory').get_parameter_value().string_value
+        )
+        output_directory.mkdir(parents=True, exist_ok=True)
+        run_id = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        self._output_path = output_directory / f'kinematics_{run_id}.csv'
+        self._csv_writer = KinematicsCsvWriter(self._output_path, ARM_JOINTS)
+        self.get_logger().info(
+            f'Saving joint kinematics to {self._output_path.resolve()}'
+        )
         self.create_subscription(
             msg_type=JointState,
             topic=JOINT_STATES_TOPIC,
@@ -47,6 +64,7 @@ class KinematicsRecorder(Node):
         if sample is None:
             return
 
+        self._csv_writer.write_sample(sample)
         sample_data = {
             'timestamp_s': sample.timestamp,
             'positions_rad': sample.positions,
@@ -57,6 +75,10 @@ class KinematicsRecorder(Node):
             f'Arm kinematics: {sample_data}',
             throttle_duration_sec=LOG_THROTTLE_S,
         )
+
+    def close(self) -> None:
+        """Close the output file after the recorder stops."""
+        self._csv_writer.close()
 
 
 def main() -> None:
@@ -74,6 +96,7 @@ def main() -> None:
     except KeyboardInterrupt:
         pass
     finally:
+        node.close()
         node.destroy_node()
         rclpy.try_shutdown()
 
