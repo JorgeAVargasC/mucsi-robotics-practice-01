@@ -32,12 +32,11 @@ HOME_JOINTS: tuple[float, ...] = (
     HOME_WRIST_3_RAD,
 )
 
-# Joint trajectory target (rad): the base turns 90 degrees and the elbow opens.
-# Shoulder lift + elbow + wrist 1 add up to the same value as in home,
-# so the tool keeps pointing down.
-JOINT_TARGET_SHOULDER_PAN_RAD: float = pi / 2  #  0 -> 90 degress
+# Joint trajectory target (rad): the base turns 90 degrees and the elbow opens,
+# so the tool also tilts 45 degrees.
+JOINT_TARGET_SHOULDER_PAN_RAD: float = pi / 2  #  0 -> 90 degrees
 JOINT_TARGET_SHOULDER_LIFT_RAD: float = HOME_SHOULDER_LIFT_RAD
-JOINT_TARGET_ELBOW_RAD: float = -pi / 4  # -90 degress -> -45 degress
+JOINT_TARGET_ELBOW_RAD: float = -pi / 4  # -90 degrees -> -45 degrees
 JOINT_TARGET_WRIST_1_RAD: float = HOME_WRIST_1_RAD
 JOINT_TARGET_WRIST_2_RAD: float = HOME_WRIST_2_RAD
 JOINT_TARGET_WRIST_3_RAD: float = HOME_WRIST_3_RAD
