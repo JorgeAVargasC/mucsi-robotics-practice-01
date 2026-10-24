@@ -1,4 +1,4 @@
-"""ROS 2 node  that records the UR3e joint states."""
+"""ROS 2 node that records the UR3e joint states."""
 
 import rclpy
 from rclpy.node import Node
@@ -11,10 +11,11 @@ LOG_THROTTLE_S = 1.0
 
 
 class KinematicsRecorder(Node):
-    """Suscribe to /joint_states and keep only the ARM_JOINTS."""
+    """Subscribe to joint states and keep only the arm joints."""
 
     def __init__(self) -> None:
-        super().__init__("kinematics_recorder")
+        """Initialize the node and its joint-state subscription."""
+        super().__init__('kinematics_recorder')
         self.create_subscription(
             msg_type=JointState,
             topic=JOINT_STATES_TOPIC,
@@ -23,14 +24,11 @@ class KinematicsRecorder(Node):
         )
 
     def _on_joint_states(self, msg: JointState) -> None:
-        """Log arm positions, indexed by name beacause name[] has no fixed order."""
+        """Log arm positions, using joint names because message order can vary."""
+        # The name and position arrays share indices, but joint ordering can vary.
         positions = dict(zip(msg.name, msg.position))
-        # ? msg.name     = ["elbow_joint", "shoulder_lift_joint", "shoulder_pan_joint", ...]
-        # ? msg.position = [-1.6         , -1.6                 , 0.0                 , ...]
-        # ? ("elbow_joint", -1.6), ("shoulder_lift_joint", -1.6), ...
-        # ? positions = {"elbow_joint": -1.6, "shoulder_lift_joint": -1.6
 
-        #! skip gripper messages: they do not include the arm joints
+        # Ignore messages that do not contain every arm joint.
         if not all(joint in positions for joint in ARM_JOINTS):
             return
 
@@ -39,11 +37,12 @@ class KinematicsRecorder(Node):
 
 
 def main() -> None:
-    print("\033[32m")
-    print("=" * 45)
-    print("kinematics_recorder.py")
-    print("=" * 45)
-    print("\033[0m")
+    """Initialize ROS 2 and spin the recorder node."""
+    print('\033[32m')
+    print('=' * 45)
+    print('kinematics_recorder.py')
+    print('=' * 45)
+    print('\033[0m')
 
     rclpy.init()
     node = KinematicsRecorder()
@@ -56,5 +55,5 @@ def main() -> None:
         rclpy.try_shutdown()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
