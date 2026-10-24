@@ -5,17 +5,19 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 
 from ur3e_kinematics.constants import ARM_JOINTS, JOINT_STATES_TOPIC, QUEUE_DEPTH
+from ur3e_kinematics.joint_state_processor import JointStateProcessor
 
 # * One log per second
 LOG_THROTTLE_S = 1.0
 
 
 class KinematicsRecorder(Node):
-    """Subscribe to joint states and keep only the arm joints."""
+    """Subscribe to joint states and log arm kinematics."""
 
     def __init__(self) -> None:
         """Initialize the node and its joint-state subscription."""
         super().__init__('kinematics_recorder')
+        self._processor = JointStateProcessor(joint_names=ARM_JOINTS)
         self.create_subscription(
             msg_type=JointState,
             topic=JOINT_STATES_TOPIC,
@@ -24,16 +26,37 @@ class KinematicsRecorder(Node):
         )
 
     def _on_joint_states(self, msg: JointState) -> None:
-        """Log arm positions, using joint names because message order can vary."""
-        # The name and position arrays share indices, but joint ordering can vary.
-        positions = dict(zip(msg.name, msg.position))
-
-        # Ignore messages that do not contain every arm joint.
-        if not all(joint in positions for joint in ARM_JOINTS):
+        """Process and log arm positions, velocities, and accelerations."""
+        timestamp = (
+            msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        )
+        try:
+            sample = self._processor.process(
+                timestamp=timestamp,
+                joint_names=msg.name,
+                positions=msg.position,
+                velocities=msg.velocity,
+            )
+        except ValueError as error:
+            self.get_logger().warning(
+                f'Ignoring invalid joint-state message: {error}',
+                throttle_duration_sec=LOG_THROTTLE_S,
+            )
             return
 
-        arm_positions = {joint: positions[joint] for joint in ARM_JOINTS}
-        self.get_logger().info(str(arm_positions), throttle_duration_sec=LOG_THROTTLE_S)
+        if sample is None:
+            return
+
+        sample_data = {
+            'timestamp_s': sample.timestamp,
+            'positions_rad': sample.positions,
+            'velocities_rad_s': sample.velocities,
+            'accelerations_rad_s2': sample.accelerations,
+        }
+        self.get_logger().info(
+            f'Arm kinematics: {sample_data}',
+            throttle_duration_sec=LOG_THROTTLE_S,
+        )
 
 
 def main() -> None:
