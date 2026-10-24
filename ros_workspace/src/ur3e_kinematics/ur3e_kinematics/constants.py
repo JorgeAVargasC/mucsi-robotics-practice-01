@@ -50,3 +50,7 @@ JOINT_TARGET_JOINTS: tuple[float, ...] = (
     JOINT_TARGET_WRIST_2_RAD,
     JOINT_TARGET_WRIST_3_RAD,
 )
+
+# Linear trajectory: the tool moves in a straight line along the y axis,
+# as in the course example (m)
+LINEAR_DISTANCE_M: float = 0.1  # 0.1 m = 10 cm

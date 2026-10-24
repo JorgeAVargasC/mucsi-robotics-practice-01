@@ -2,7 +2,7 @@
 
 import rclpy
 
-from ur3e_kinematics.constants import HOME_JOINTS, JOINT_TARGET_JOINTS
+from ur3e_kinematics.constants import HOME_JOINTS, JOINT_TARGET_JOINTS, LINEAR_DISTANCE_M
 from ur3e_kinematics.robot_controller import RobotController
 
 
@@ -18,6 +18,8 @@ class TrajectoryExecutor(RobotController):
         self._move_home()
         self._run_joint_trajectory()
         self._move_home()
+        self._run_linear_trajectory()
+        self._move_home()
 
     def _move_home(self) -> None:
         """Move to the start position."""
@@ -29,6 +31,14 @@ class TrajectoryExecutor(RobotController):
         self.get_logger().info('Joint trajectory: start')
         if not self.move_joints(JOINT_TARGET_JOINTS):
             self.get_logger().error('Joint trajectory failed')
+
+    def _run_linear_trajectory(self) -> None:
+        """Move the tool in a straight line, keeping its orientation."""
+        self.get_logger().info('Linear trajectory: start')
+        target = self.current_pose()
+        target.position.y += LINEAR_DISTANCE_M
+        if not self.move_cartesian_path([target]):
+            self.get_logger().error('Linear trajectory failed')
 
 
 def main() -> None:
