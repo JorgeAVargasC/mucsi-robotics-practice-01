@@ -54,3 +54,7 @@ JOINT_TARGET_JOINTS: tuple[float, ...] = (
 # Linear trajectory: the tool moves in a straight line along the y axis,
 # as in the course example (m)
 LINEAR_DISTANCE_M: float = 0.1  # 0.1 m = 10 cm
+
+# Circular trajectory: the tool draws a full circle in the YZ plane
+CIRCLE_RADIUS_M: float = 0.05  # 0.05 m = 5 cm
+CIRCLE_WAYPOINTS: int = 36  # one point every 10 degrees
