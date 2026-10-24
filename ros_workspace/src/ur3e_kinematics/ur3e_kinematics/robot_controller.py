@@ -3,21 +3,17 @@
 import copy
 import threading
 import time
-from math import pi
 from typing import List
 
 import rclpy
-from control_msgs.action import GripperCommand
-from geometry_msgs.msg import Pose, PoseStamped
+from geometry_msgs.msg import Pose
 from moveit_msgs.action import ExecuteTrajectory, MoveGroup
 from moveit_msgs.msg import (
     CollisionObject,
     Constraints,
     JointConstraint,
     MoveItErrorCodes,
-    OrientationConstraint,
     PlanningScene,
-    PositionConstraint,
     RobotState,
 )
 from moveit_msgs.srv import ApplyPlanningScene, GetCartesianPath
@@ -39,19 +35,11 @@ FACTOR_ESCALA = 0.1  # Velocidad y aceleración máximas (fracción de las máxi
 class ControlRobot(Node):
     """Control del robot con MoveIt 2 a través de sus acciones y servicios (move_group)."""
 
-    def __init__(self, id_robot: str = "") -> None:
-        """id_robot: "" para un robot individual, o "203", "204"... en las escenas con dos robots."""
+    def __init__(self) -> None:
         super().__init__("control_robot")
-        if id_robot:
-            self.group_name = f"robot_{id_robot}"
-            self.efector_final = f"{id_robot}_{EFECTOR_FINAL}"
-            self.articulaciones = [f"{id_robot}_{j}" for j in ARTICULACIONES]
-            accion_pinza = f"robot_{id_robot}/rg2_action_server"
-        else:
-            self.group_name = GRUPO
-            self.efector_final = EFECTOR_FINAL
-            self.articulaciones = list(ARTICULACIONES)
-            accion_pinza = "rg2_action_server"
+        self.group_name = GRUPO
+        self.efector_final = EFECTOR_FINAL
+        self.articulaciones = list(ARTICULACIONES)
         self.__estado_articulaciones = {}
 
         self.create_subscription(JointState, "/joint_states", self.__cb_joint_states, 10)
@@ -62,7 +50,6 @@ class ControlRobot(Node):
         self.execute_client = ActionClient(self, ExecuteTrajectory, "execute_trajectory")
         self.cartesian_client = self.create_client(GetCartesianPath, "compute_cartesian_path")
         self.scene_client = self.create_client(ApplyPlanningScene, "apply_planning_scene")
-        self.gripper_action_client = ActionClient(self, GripperCommand, accion_pinza)
 
         # Se atienden los callbacks (joint_states, tf, ...) en un hilo aparte
         self.ejecutor = MultiThreadedExecutor()
@@ -132,35 +119,6 @@ class ControlRobot(Node):
         pose.orientation = transformacion.transform.rotation
         return pose
 
-    def pose_a_stamped(self, pose: Pose) -> PoseStamped:
-        pose_stamped = PoseStamped()
-        pose_stamped.header.frame_id = SISTEMA_REFERENCIA
-        pose_stamped.pose = pose
-        return pose_stamped
-
-    def mover_a_pose(self, pose_goal: Pose, wait: bool = True) -> bool:
-        restriccion_posicion = PositionConstraint()
-        restriccion_posicion.header.frame_id = SISTEMA_REFERENCIA
-        restriccion_posicion.link_name = self.efector_final
-        region = SolidPrimitive(type=SolidPrimitive.SPHERE, dimensions=[0.001])
-        restriccion_posicion.constraint_region.primitives.append(region)
-        restriccion_posicion.constraint_region.primitive_poses.append(pose_goal)
-        restriccion_posicion.weight = 1.0
-
-        restriccion_orientacion = OrientationConstraint()
-        restriccion_orientacion.header.frame_id = SISTEMA_REFERENCIA
-        restriccion_orientacion.link_name = self.efector_final
-        restriccion_orientacion.orientation = pose_goal.orientation
-        restriccion_orientacion.absolute_x_axis_tolerance = 0.01
-        restriccion_orientacion.absolute_y_axis_tolerance = 0.01
-        restriccion_orientacion.absolute_z_axis_tolerance = 0.01
-        restriccion_orientacion.weight = 1.0
-
-        restricciones = Constraints()
-        restricciones.position_constraints.append(restriccion_posicion)
-        restricciones.orientation_constraints.append(restriccion_orientacion)
-        return self.__ir_a(restricciones, wait)
-
     def añadir_caja_a_escena_de_planificacion(self, pose_caja: Pose, name: str,
                                               tamaño: tuple = (.1, .1, .1)) -> None:
         caja = CollisionObject()
@@ -212,58 +170,3 @@ class ControlRobot(Node):
         pose_suelo.position.z = -0.026
         pose_suelo.orientation.w = 1.0
         self.añadir_caja_a_escena_de_planificacion(pose_suelo, "suelo", (2, 2, .05))
-
-    def mover_pinza(self, anchura_dedos: float, fuerza: float) -> bool:
-        self.gripper_action_client.wait_for_server()
-        goal = GripperCommand.Goal()
-        goal.command.position = anchura_dedos
-        goal.command.max_effort = fuerza
-        goal_handle = self.__esperar(self.gripper_action_client.send_goal_async(goal))
-        if not goal_handle.accepted:
-            return False
-        result = self.__esperar(goal_handle.get_result_async()).result
-        return result.reached_goal
-
-
-if __name__ == '__main__':
-    rclpy.init()
-
-    # Crear el objeto de tipo robot
-    control = ControlRobot()
-
-    pi_medios = pi / 2
-    # Mover el robot a articulaciones iniciales
-    control.mover_articulaciones([0, -pi_medios, -pi_medios, -pi_medios, pi_medios, 0])
-
-    # Mover el robot a una pose
-    pose_actual = control.pose_actual()
-    pose_actual.position.z -= 0.1
-    control.mover_a_pose(pose_actual)
-
-    # Mover el efector final del robot en línea recta a través de varias poses
-    poses = []  # Lista de poses que va a recorrer
-
-    # Pose 1
-    pose_actual = control.pose_actual()
-    pose_actual.position.z += 0.1
-    poses.append(copy.deepcopy(pose_actual))
-
-    # Pose 2
-    pose_actual.position.y += 0.1
-    poses.append(copy.deepcopy(pose_actual))
-
-    # Pose 3
-    pose_actual.position.x += 0.1
-    poses.append(copy.deepcopy(pose_actual))
-
-    # Pose 4
-    pose_actual.position.x -= 0.1
-    pose_actual.position.y -= 0.1
-    pose_actual.position.z -= 0.1
-    poses.append(copy.deepcopy(pose_actual))
-
-    control.mover_trayectoria(poses)
-
-    control.ejecutor.shutdown()
-    control.destroy_node()
-    rclpy.shutdown()
