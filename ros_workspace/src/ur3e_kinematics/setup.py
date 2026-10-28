@@ -24,7 +24,7 @@ setup(
     entry_points={
         "console_scripts": [
             "kinematics_recorder = ur3e_kinematics.kinematics_recorder:main",
-            "trajectory_executor = ur3e_kinematics.trajectory_executor:main",
+            "ex_02_trajectory_executor = ur3e_kinematics.ex_02_trajectory_executor:main",
             "ex_01_joint_states_subscriber = ur3e_kinematics.ex_01_joint_states_subscriber:main",
         ],
     },
