@@ -26,6 +26,7 @@ setup(
             "kinematics_recorder = ur3e_kinematics.kinematics_recorder:main",
             "ex_02_trajectory_executor = ur3e_kinematics.ex_02_trajectory_executor:main",
             "ex_01_joint_states_subscriber = ur3e_kinematics.ex_01_joint_states_subscriber:main",
+            "ex_04_joint_kinematics_publisher = ur3e_kinematics.ex_04_joint_kinematics_publisher:main",
         ],
     },
 )
