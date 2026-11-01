@@ -14,6 +14,7 @@ from ur3e_kinematics.constants import (
 )
 from ur3e_kinematics.joint_state_processor import JointStateProcessor
 from ur3e_kinematics.kinematics_csv_writer import KinematicsCsvWriter
+from ur3e_kinematics.motion_detector import MotionDetector
 
 # * One log per second
 LOG_THROTTLE_S = 1.0
@@ -26,6 +27,8 @@ class KinematicsRecorder(Node):
         """Initialize the node and its joint-state subscription."""
         super().__init__('kinematics_recorder')
         self._processor = JointStateProcessor(joint_names=ARM_JOINTS)
+        self._motion_detector = MotionDetector(joint_names=ARM_JOINTS)
+        self._recording_motion = False
         self._trajectory = ''
         self.declare_parameter(
             'output_directory', str(Path.home() / 'ros_workspace')
@@ -53,7 +56,16 @@ class KinematicsRecorder(Node):
 
     def _on_trajectory(self, msg: String) -> None:
         """Record only the trajectories announced by the executor."""
-        self._trajectory = msg.data if msg.data in TRAJECTORIES else ''
+        trajectory = msg.data if msg.data in TRAJECTORIES else ''
+        if trajectory != self._trajectory:
+            self._reset_processor()
+        self._trajectory = trajectory
+
+    def _reset_processor(self) -> None:
+        """Discard derivative history after a stop or trajectory change."""
+        if self._recording_motion:
+            self._processor = JointStateProcessor(joint_names=ARM_JOINTS)
+            self._recording_motion = False
 
     def _on_joint_states(self, msg: JointState) -> None:
         """Process and log arm positions, velocities, and accelerations."""
@@ -61,6 +73,18 @@ class KinematicsRecorder(Node):
             msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         )
         try:
+            moving = self._motion_detector.is_moving(
+                timestamp=timestamp,
+                joint_names=msg.name,
+                positions=msg.position,
+                velocities=msg.velocity,
+            )
+            if moving is None:
+                return
+            if not self._trajectory or not moving:
+                self._reset_processor()
+                return
+
             sample = self._processor.process(
                 timestamp=timestamp,
                 joint_names=msg.name,
@@ -74,9 +98,10 @@ class KinematicsRecorder(Node):
             )
             return
 
-        if sample is None or not self._trajectory:
+        if sample is None:
             return
 
+        self._recording_motion = True
         self._csv_writer.write_sample(sample, self._trajectory)
         sample_data = {
             'timestamp_s': sample.timestamp,

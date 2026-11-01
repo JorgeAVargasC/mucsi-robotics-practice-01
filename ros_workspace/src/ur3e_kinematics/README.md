@@ -53,8 +53,11 @@ ros2 run ur3e_kinematics kinematics_recorder
 In another container terminal, run the executor as shown above. Stop the
 recorder with `Ctrl+C` after the executor finishes. It writes a CSV in
 `~/ros_workspace` with a `trajectory` column (`joint`, `linear` or
-`circular`). Moves to home and idle periods between trajectories are not
-recorded. Samples while a trajectory is being planned may still be stationary.
+`circular`). Only samples while an arm joint moves faster than 0.001 rad/s are
+recorded. This threshold ignores small fluctuations, but may omit very slow
+motion. Moves to home and idle periods between trajectories are not recorded.
+The first acceleration after a stop is left empty because there is no previous
+moving sample; velocity can also be empty when it must be estimated.
 
 ## ex_04: publish the custom message
 

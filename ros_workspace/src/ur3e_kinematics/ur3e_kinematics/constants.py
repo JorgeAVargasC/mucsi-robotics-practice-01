@@ -7,6 +7,8 @@ JOINT_KINEMATICS_TOPIC: str = "/joint_kinematics"
 TRAJECTORY_TOPIC: str = "/active_trajectory"
 TRAJECTORIES: tuple[str, ...] = ("joint", "linear", "circular")
 QUEUE_DEPTH: int = 10
+# Joint speeds at or below this threshold are treated as stationary (rad/s).
+MOTION_THRESHOLD_RAD_S: float = 0.001
 
 ARM_JOINTS: tuple[str, ...] = (
     "shoulder_pan_joint",
