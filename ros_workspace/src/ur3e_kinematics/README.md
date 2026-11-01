@@ -42,6 +42,20 @@ ros2 run ur3e_kinematics ex_02_trajectory_executor
 
 Expected: in RViz, the robot runs the joint, linear and circular trajectories, returning home between them.
 
+## Record trajectory data
+
+Start the recorder before running `ex_02_trajectory_executor`:
+
+```bash
+ros2 run ur3e_kinematics kinematics_recorder
+```
+
+In another container terminal, run the executor as shown above. Stop the
+recorder with `Ctrl+C` after the executor finishes. It writes a CSV in
+`~/ros_workspace` with a `trajectory` column (`joint`, `linear` or
+`circular`). Moves to home and idle periods between trajectories are not
+recorded. Samples while a trajectory is being planned may still be stationary.
+
 ## ex_04: publish the custom message
 
 ```bash

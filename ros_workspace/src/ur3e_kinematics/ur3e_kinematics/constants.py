@@ -4,6 +4,8 @@ from math import pi
 
 JOINT_STATES_TOPIC: str = "/joint_states"
 JOINT_KINEMATICS_TOPIC: str = "/joint_kinematics"
+TRAJECTORY_TOPIC: str = "/active_trajectory"
+TRAJECTORIES: tuple[str, ...] = ("joint", "linear", "circular")
 QUEUE_DEPTH: int = 10
 
 ARM_JOINTS: tuple[str, ...] = (

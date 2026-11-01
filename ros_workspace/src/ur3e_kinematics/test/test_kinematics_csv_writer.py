@@ -17,7 +17,7 @@ def test_writes_timestamp_and_kinematics_for_each_joint(tmp_path) -> None:
         accelerations={'joint_a': -0.4, 'joint_b': None},
     )
     writer = KinematicsCsvWriter(output_path, joint_names)
-    writer.write_sample(sample)
+    writer.write_sample(sample, 'joint')
     writer.close()
 
     with output_path.open(newline='', encoding='utf-8') as csv_file:
@@ -25,6 +25,7 @@ def test_writes_timestamp_and_kinematics_for_each_joint(tmp_path) -> None:
 
     assert rows == [
         {
+            'trajectory': 'joint',
             'timestamp_s': '12.5',
             'joint_a_position_rad': '0.1',
             'joint_a_velocity_rad_s': '0.3',

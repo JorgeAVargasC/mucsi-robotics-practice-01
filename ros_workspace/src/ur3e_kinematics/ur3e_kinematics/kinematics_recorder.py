@@ -5,9 +5,13 @@ from pathlib import Path
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile
 from sensor_msgs.msg import JointState
+from std_msgs.msg import String
 
-from ur3e_kinematics.constants import ARM_JOINTS, JOINT_STATES_TOPIC, QUEUE_DEPTH
+from ur3e_kinematics.constants import (
+    ARM_JOINTS, JOINT_STATES_TOPIC, QUEUE_DEPTH, TRAJECTORIES, TRAJECTORY_TOPIC,
+)
 from ur3e_kinematics.joint_state_processor import JointStateProcessor
 from ur3e_kinematics.kinematics_csv_writer import KinematicsCsvWriter
 
@@ -22,6 +26,7 @@ class KinematicsRecorder(Node):
         """Initialize the node and its joint-state subscription."""
         super().__init__('kinematics_recorder')
         self._processor = JointStateProcessor(joint_names=ARM_JOINTS)
+        self._trajectory = ''
         self.declare_parameter(
             'output_directory', str(Path.home() / 'ros_workspace')
         )
@@ -36,11 +41,19 @@ class KinematicsRecorder(Node):
             f'Saving joint kinematics to {self._output_path.resolve()}'
         )
         self.create_subscription(
+            String, TRAJECTORY_TOPIC, self._on_trajectory,
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
+        )
+        self.create_subscription(
             msg_type=JointState,
             topic=JOINT_STATES_TOPIC,
             callback=self._on_joint_states,
             qos_profile=QUEUE_DEPTH,
         )
+
+    def _on_trajectory(self, msg: String) -> None:
+        """Record only the trajectories announced by the executor."""
+        self._trajectory = msg.data if msg.data in TRAJECTORIES else ''
 
     def _on_joint_states(self, msg: JointState) -> None:
         """Process and log arm positions, velocities, and accelerations."""
@@ -61,10 +74,10 @@ class KinematicsRecorder(Node):
             )
             return
 
-        if sample is None:
+        if sample is None or not self._trajectory:
             return
 
-        self._csv_writer.write_sample(sample)
+        self._csv_writer.write_sample(sample, self._trajectory)
         sample_data = {
             'timestamp_s': sample.timestamp,
             'positions_rad': sample.positions,

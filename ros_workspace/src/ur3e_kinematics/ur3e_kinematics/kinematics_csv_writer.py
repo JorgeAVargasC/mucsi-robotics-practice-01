@@ -27,9 +27,11 @@ class KinematicsCsvWriter:
         self._writer = csv.DictWriter(self._file, fieldnames=self._fieldnames)
         self._writer.writeheader()
 
-    def write_sample(self, sample: JointStateSample) -> None:
+    def write_sample(self, sample: JointStateSample, trajectory: str) -> None:
         """Append one processed sample as a CSV row."""
-        row: dict[str, float | None] = {'timestamp_s': sample.timestamp}
+        row: dict[str, str | float | None] = {
+            'trajectory': trajectory, 'timestamp_s': sample.timestamp,
+        }
         for joint_name in self._joint_names:
             row[f'{joint_name}_position_rad'] = sample.positions[joint_name]
             row[f'{joint_name}_velocity_rad_s'] = sample.velocities[joint_name]
@@ -44,7 +46,7 @@ class KinematicsCsvWriter:
 
     def _create_fieldnames(self) -> list[str]:
         """Return the CSV header in a stable, joint-by-joint order."""
-        fieldnames = ['timestamp_s']
+        fieldnames = ['trajectory', 'timestamp_s']
         for joint_name in self._joint_names:
             fieldnames.extend(
                 (

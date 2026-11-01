@@ -1,10 +1,13 @@
 """ROS 2 node that runs the practice trajectories on the UR3e."""
 
 import copy
+from collections.abc import Callable
 from math import cos, pi, sin
 
 import rclpy
 from geometry_msgs.msg import Pose
+from rclpy.qos import DurabilityPolicy, QoSProfile
+from std_msgs.msg import String
 
 from ur3e_kinematics.constants import (
     CIRCLE_RADIUS_M,
@@ -12,6 +15,7 @@ from ur3e_kinematics.constants import (
     HOME_JOINTS,
     JOINT_TARGET_JOINTS,
     LINEAR_DISTANCE_M,
+    TRAJECTORY_TOPIC,
 )
 from ur3e_kinematics.robot_controller import RobotController
 
@@ -23,18 +27,35 @@ class Ex02TrajectoryExecutor(RobotController):
 
         # * RobotController connects to MoveIt
         super().__init__("ex_02_trajectory_executor")
+        self._trajectory_publisher = self.create_publisher(
+            String, TRAJECTORY_TOPIC,
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
+        )
+        self._publish_trajectory("")
 
     def run(self) -> None:
         """Move to home and run the trajectories in order."""
 
         # ? home -> joint -> home -> linear -> home -> circular -> home
         self._move_home()
-        self._run_joint_trajectory()
+        self._run_trajectory("joint", self._run_joint_trajectory)
         self._move_home()
-        self._run_linear_trajectory()
+        self._run_trajectory("linear", self._run_linear_trajectory)
         self._move_home()
-        self._run_circular_trajectory()
+        self._run_trajectory("circular", self._run_circular_trajectory)
         self._move_home()
+
+    def _run_trajectory(self, name: str, move: Callable[[], None]) -> None:
+        """Mark samples from this move and stop recording before returning home."""
+        self._publish_trajectory(name)
+        try:
+            move()
+        finally:
+            self._publish_trajectory("")
+
+    def _publish_trajectory(self, name: str) -> None:
+        """Publish the current trajectory; an empty name means no recording."""
+        self._trajectory_publisher.publish(String(data=name))
 
     def _move_home(self) -> None:
         """Move to the start position."""
