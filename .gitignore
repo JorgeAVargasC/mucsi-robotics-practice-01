@@ -4,3 +4,6 @@ log/
 __pycache__/
 *.pyc
 .vscode/
+
+# Kinematics data made by kinematics_recorder
+*.csv
