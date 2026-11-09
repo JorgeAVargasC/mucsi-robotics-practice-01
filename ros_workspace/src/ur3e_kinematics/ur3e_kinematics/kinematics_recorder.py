@@ -1,27 +1,35 @@
 """ROS 2 node that records the UR3e joint states."""
 
 from datetime import datetime
+from math import nan
 from pathlib import Path
 
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
 from sensor_msgs.msg import JointState
-from std_msgs.msg import String
+from std_msgs.msg import Header, String
 
 from ur3e_kinematics.constants import (
-    ARM_JOINTS, JOINT_STATES_TOPIC, QUEUE_DEPTH, TRAJECTORIES, TRAJECTORY_TOPIC,
+    ARM_JOINTS, JOINT_KINEMATICS_TOPIC, JOINT_STATES_TOPIC, QUEUE_DEPTH,
+    TRAJECTORIES, TRAJECTORY_TOPIC,
 )
-from ur3e_kinematics.joint_state_processor import JointStateProcessor
+from ur3e_kinematics.joint_state_processor import JointStateProcessor, JointStateSample
 from ur3e_kinematics.kinematics_csv_writer import KinematicsCsvWriter
 from ur3e_kinematics.motion_detector import MotionDetector
+from ur3e_kinematics_interfaces.msg import JointKinematics
 
 # * One log per second
 LOG_THROTTLE_S = 1.0
 
 
+def _none_to_nan(value: float | None) -> float:
+    """Replace a missing value because float64 fields cannot hold None."""
+    return nan if value is None else value
+
+
 class KinematicsRecorder(Node):
-    """Subscribe to joint states and log arm kinematics."""
+    """Subscribe to joint states, save arm kinematics and publish them."""
 
     def __init__(self) -> None:
         """Initialize the node and its joint-state subscription."""
@@ -42,6 +50,11 @@ class KinematicsRecorder(Node):
         self._csv_writer = KinematicsCsvWriter(self._output_path, ARM_JOINTS)
         self.get_logger().info(
             f'Saving joint kinematics to {self._output_path.resolve()}'
+        )
+        self._kinematics_publisher = self.create_publisher(
+            msg_type=JointKinematics,
+            topic=JOINT_KINEMATICS_TOPIC,
+            qos_profile=QUEUE_DEPTH,
         )
         self.create_subscription(
             String, TRAJECTORY_TOPIC, self._on_trajectory,
@@ -103,6 +116,7 @@ class KinematicsRecorder(Node):
 
         self._recording_motion = True
         self._csv_writer.write_sample(sample, self._trajectory)
+        self._publish_kinematics(msg.header, sample)
         sample_data = {
             'timestamp_s': sample.timestamp,
             'positions_rad': sample.positions,
@@ -113,6 +127,21 @@ class KinematicsRecorder(Node):
             f'Arm kinematics: {sample_data}',
             throttle_duration_sec=LOG_THROTTLE_S,
         )
+
+    def _publish_kinematics(self, header: Header, sample: JointStateSample) -> None:
+        """Send the saved position, velocity and acceleration in one message."""
+        # All lists follow the ARM_JOINTS order, not the order of msg.name.
+        kinematics = JointKinematics()
+        kinematics.header = header
+        kinematics.joint_names = list(ARM_JOINTS)
+        kinematics.positions = [sample.positions[name] for name in ARM_JOINTS]
+        kinematics.velocities = [
+            _none_to_nan(sample.velocities[name]) for name in ARM_JOINTS
+        ]
+        kinematics.accelerations = [
+            _none_to_nan(sample.accelerations[name]) for name in ARM_JOINTS
+        ]
+        self._kinematics_publisher.publish(kinematics)
 
     def close(self) -> None:
         """Close the output file after the recorder stops."""
