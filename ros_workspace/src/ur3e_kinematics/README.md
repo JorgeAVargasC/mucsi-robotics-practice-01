@@ -1,30 +1,30 @@
 # ur3e_kinematics
 
-Practice 1: record the position, velocity and acceleration of the UR3e joints
-while the robot runs a joint, a linear and a circular trajectory.
+Práctica 1: registrar la posición, velocidad y aceleración de las articulaciones
+del UR3e mientras el robot ejecuta una trayectoria joint, una lineal y una circular.
 
-## Nodes
+## Nodos
 
-| Node | What it does |
+| Nodo | Qué hace |
 | --- | --- |
-| `trajectory_executor` | Moves the robot with MoveIt: home -> joint -> home -> linear -> home -> circular -> home. Publishes the active trajectory on `/active_trajectory`. |
-| `kinematics_recorder` | Subscribes to `/joint_states` and `/active_trajectory`. Saves the samples to a CSV and publishes them on `/joint_kinematics` (`ur3e_kinematics_interfaces/msg/JointKinematics`). |
+| `trajectory_executor` | Mueve el robot con MoveIt: home -> joint -> home -> lineal -> home -> circular -> home. Publica la trayectoria activa en `/active_trajectory`. |
+| `kinematics_recorder` | Se suscribe a `/joint_states` y `/active_trajectory`. Guarda las muestras en un CSV y las publica en `/joint_kinematics` (`ur3e_kinematics_interfaces/msg/JointKinematics`). |
 
-## How to test
+## Cómo probarlo
 
-Use 4 terminals. T1 is Windows; T2, T3 and T4 are container terminals
-(`.\lab.bat terminal`).
+Se usan 4 terminales: T1 en Windows y T2, T3 y T4 dentro del contenedor
+(cada una se abre con `.\lab.bat terminal`).
 
 ```powershell
-# T1 (Windows) - start the simulation and leave it running
+# T1 (Windows) - arrancar la simulación y dejarla corriendo
 .\lab.bat iniciar
 .\lab.bat sim 203
 ```
 
-RViz in the browser: <http://localhost:6081/vnc.html?autoconnect=true&password=laboratorio&resize=scale>
+RViz en el navegador: <http://localhost:6081/vnc.html?autoconnect=true&password=laboratorio&resize=scale>
 
 ```bash
-# T2 - build once, then start the recorder
+# T2 (.\lab.bat terminal) - compilar una vez y arrancar el recorder
 cd ~/ros_workspace
 colcon build --symlink-install --packages-select ur3e_kinematics_interfaces ur3e_kinematics
 source install/setup.bash
@@ -32,35 +32,36 @@ ros2 run ur3e_kinematics kinematics_recorder
 ```
 
 ```bash
-# T3 (optional) - see the custom message
+# T3 (.\lab.bat terminal) - opcional, ver el mensaje personalizado
 cd ~/ros_workspace
 source install/setup.bash
 ros2 topic echo /joint_kinematics
 ```
 
 ```bash
-# T4 - run the trajectories (start it after the recorder)
+# T4 (.\lab.bat terminal) - ejecutar las trayectorias (después del recorder)
 cd ~/ros_workspace
 source install/setup.bash
 ros2 run ur3e_kinematics trajectory_executor
 ```
 
-When T4 finishes, press `Ctrl+C` in T2 to close the CSV file.
+Cuando T4 termine, pulsar `Ctrl+C` en T2 para cerrar el CSV.
 
-## Expected result
+## Resultado esperado
 
-- RViz: the robot runs the joint, linear and circular trajectories and goes
-  back home between them.
-- T3: one `JointKinematics` message per saved sample (positions, velocities and
-  accelerations), only while the robot runs a trajectory.
-- CSV: `~/ros_workspace/kinematics_<date>_<time>.csv`, one row per sample, with a
-  `trajectory` column (`joint`, `linear` or `circular`) and the timestamp,
-  position, velocity and acceleration of each joint.
+- RViz: el robot ejecuta las trayectorias joint, lineal y circular, y vuelve a
+  home entre una y otra.
+- T3: un mensaje `JointKinematics` por cada muestra guardada (posiciones,
+  velocidades y aceleraciones), solo mientras el robot ejecuta una trayectoria.
+- CSV: `~/ros_workspace/kinematics_<fecha>_<hora>.csv`, una fila por muestra,
+  con una columna `trajectory` (`joint`, `linear` o `circular`) y el timestamp,
+  la posición, la velocidad y la aceleración de cada articulación.
 
-Only samples while an arm joint moves faster than 0.001 rad/s are recorded.
-Moves to home and idle periods between trajectories are not recorded. The first
-acceleration after a stop is empty because there is no previous moving sample;
-velocity can also be empty when it must be estimated.
+Solo se guardan las muestras en las que alguna articulación del brazo se mueve
+a más de 0,001 rad/s. Las vueltas a home y los periodos quietos entre
+trayectorias no se guardan. La primera aceleración después de una parada queda
+vacía porque no hay una muestra anterior en movimiento; la velocidad también
+puede quedar vacía cuando hay que estimarla.
 
 ## Tests
 
@@ -70,6 +71,6 @@ colcon test --packages-select ur3e_kinematics
 colcon test-result --verbose
 ```
 
-## Stop
+## Detener
 
-`Ctrl+C` in each terminal, then in Windows: `.\lab.bat parar`
+`Ctrl+C` en cada terminal y luego, en Windows: `.\lab.bat parar`
