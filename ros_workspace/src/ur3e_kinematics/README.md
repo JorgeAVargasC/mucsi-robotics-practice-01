@@ -24,18 +24,18 @@ colcon build --symlink-install --packages-select ur3e_kinematics_interfaces ur3e
 source install/setup.bash
 ```
 
-## ex_02: run the trajectories
+## Run the trajectories
 
 ```bash
 # Container T1
-ros2 run ur3e_kinematics ex_02_trajectory_executor
+ros2 run ur3e_kinematics trajectory_executor
 ```
 
 Expected: in RViz, the robot runs the joint, linear and circular trajectories, returning home between them.
 
 ## Record trajectory data
 
-Start the recorder before running `ex_02_trajectory_executor`:
+Start the recorder before running `trajectory_executor`:
 
 ```bash
 ros2 run ur3e_kinematics kinematics_recorder

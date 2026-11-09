@@ -20,13 +20,13 @@ from ur3e_kinematics.constants import (
 from ur3e_kinematics.robot_controller import RobotController
 
 
-class Ex02TrajectoryExecutor(RobotController):
+class TrajectoryExecutor(RobotController):
     """Move the robot through the Joint, Linear and Circular trajectories."""
 
     def __init__(self) -> None:
 
         # * RobotController connects to MoveIt
-        super().__init__("ex_02_trajectory_executor")
+        super().__init__("trajectory_executor")
         self._trajectory_publisher = self.create_publisher(
             String, TRAJECTORY_TOPIC,
             QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
@@ -116,12 +116,12 @@ class Ex02TrajectoryExecutor(RobotController):
 def main() -> None:
     print("\033[32m")
     print("=" * 45)
-    print("ex_02_trajectory_executor.py")
+    print("trajectory_executor.py")
     print("=" * 45)
     print("\033[0m")
 
     rclpy.init()
-    node = Ex02TrajectoryExecutor()
+    node = TrajectoryExecutor()
     try:
         node.run()
     except KeyboardInterrupt:
