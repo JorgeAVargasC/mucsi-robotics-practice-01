@@ -10,6 +10,23 @@ del UR3e mientras el robot ejecuta una trayectoria joint, una lineal y una circu
 | `trajectory_executor` | Mueve el robot con MoveIt: home -> joint -> home -> lineal -> home -> circular -> home. Publica la trayectoria activa en `/active_trajectory`. |
 | `kinematics_recorder` | Se suscribe a `/joint_states` y `/active_trajectory`. Guarda las muestras en un CSV y las publica en `/joint_kinematics` (`ur3e_kinematics_interfaces/msg/JointKinematics`). |
 
+```mermaid
+flowchart LR
+    sim["Simulación UR3e<br/>(lab.bat sim 203)"]
+    moveit["MoveIt<br/>(move_group)"]
+    exec["trajectory_executor"]
+    rec["kinematics_recorder"]
+    csv[("CSV<br/>~/ros_workspace")]
+    echo["ros2 topic echo<br/>(T3, opcional)"]
+
+    exec -- "acciones move_action /<br/>execute_trajectory" --> moveit
+    moveit -- "mueve el robot" --> sim
+    sim -- "/joint_states<br/>(sensor_msgs/JointState)" --> rec
+    exec -- "/active_trajectory<br/>(std_msgs/String)" --> rec
+    rec -- "escribe" --> csv
+    rec -- "/joint_kinematics<br/>(JointKinematics)" --> echo
+```
+
 ## Cómo probarlo
 
 Se usan 4 terminales: T1 en Windows y T2, T3 y T4 dentro del contenedor
