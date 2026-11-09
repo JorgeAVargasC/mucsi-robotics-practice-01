@@ -24,15 +24,6 @@ colcon build --symlink-install --packages-select ur3e_kinematics_interfaces ur3e
 source install/setup.bash
 ```
 
-## ex_01: read the joint states
-
-```bash
-# Container T1
-ros2 run ur3e_kinematics ex_01_joint_states_subscriber
-```
-
-Expected: one log per second with the arm positions.
-
 ## ex_02: run the trajectories
 
 ```bash
@@ -59,20 +50,16 @@ motion. Moves to home and idle periods between trajectories are not recorded.
 The first acceleration after a stop is left empty because there is no previous
 moving sample; velocity can also be empty when it must be estimated.
 
-## ex_04: publish the custom message
+## See the custom message
+
+While the recorder is running, in another container terminal:
 
 ```bash
-# Container T1
-ros2 run ur3e_kinematics ex_04_joint_kinematics_publisher
-
-# Container T2
 ros2 topic echo /joint_kinematics
-
-# Container T3 - move the robot
-ros2 run ur3e_kinematics ex_02_trajectory_executor
 ```
 
-Expected: T2 shows positions, velocities and accelerations in one message, changing while the robot moves.
+Expected: the recorder publishes each saved sample (positions, velocities and
+accelerations in one message), only while the robot runs a trajectory.
 
 ## Stop
 
